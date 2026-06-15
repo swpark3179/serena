@@ -31,11 +31,13 @@ gui_log_window: False
 
 # whether to start the Serena Dashboard, which provides detailed information on your Serena session,
 # the current configuration and furthermore allows some settings to be conveniently modified on the fly.
-# We strongly recommend to always enable this option!
 # If you want to prevent the Dashboard window from being opened on launch,
 # set `web_dashboard_open_on_launch` to false (see below).
+# Note: In this in-house/offline build it is disabled by default. It is also force-disabled at runtime
+# whenever offline mode is active (environment variable SERENA_OFFLINE), since the dashboard would
+# otherwise fetch a remote news feed.
 # Further information: https://oraios.github.io/serena/02-usage/060_dashboard.html
-web_dashboard: True
+web_dashboard: False
 
 # whether to open the Dashboard window/browser tab when Serena starts (provided that `web_dashboard` is enabled).
 # If set to false, you can still open the dashboard manually:
@@ -159,8 +161,9 @@ default_max_tool_answer_chars: 150000
 #
 # By default, a very naive character count estimator is used, which simply counts the number of characters.
 # You can configure this to TIKTOKEN_GPT4O to use a local tiktoken-based estimator for GPT-4o (will download tiktoken
-# data files on first run), or ANTHROPIC_CLAUDE_SONNET_4 which will use the (free of cost) Anthropic API to
-# estimate the token count using the Claude Sonnet 4 tokenizer.
+# data files on first run, which requires network access and is therefore not available in offline mode).
+# Note: the Anthropic-based estimator has been removed from this in-house build, which performs no external
+# LLM-provider calls. Keep CHAR_COUNT for fully offline operation.
 token_count_estimator: CHAR_COUNT
 
 # time budget (seconds) per tool call for the retrieval of additional symbol information

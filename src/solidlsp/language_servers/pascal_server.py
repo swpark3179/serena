@@ -61,6 +61,7 @@ import urllib.request
 import uuid
 import zipfile
 
+from serena.util.offline import raise_if_offline
 from solidlsp.language_servers.common import RuntimeDependency, RuntimeDependencyCollection, quote_windows_path
 from solidlsp.ls import SolidLanguageServer
 from solidlsp.ls_config import Language, LanguageServerConfig
@@ -651,6 +652,12 @@ class PascalLanguageServer(SolidLanguageServer):
         if pasls_in_path:
             log.info(f"Found pasls in PATH: {pasls_in_path}")
             return quote_windows_path(pasls_in_path)
+
+        # In offline mode, do not query GitHub or download the release; guide the user instead.
+        raise_if_offline(
+            f"automatic download of the Pascal Language Server (pasls {pasls_version}) from {cls.PASLS_RELEASES_URL}.\n"
+            "Install pasls manually and make it available on PATH"
+        )
 
         # legacy unversioned dir reserved for INITIAL; every other version goes into a versioned subdir
         pasls_dir = (

@@ -61,6 +61,7 @@ from serena.tools import (
 from serena.util.gui import system_has_usable_display
 from serena.util.inspection import iter_subclasses
 from serena.util.logging import MemoryLogHandler
+from serena.util.offline import is_offline_mode
 from solidlsp.ls_config import Language
 from solidlsp.util import subprocess_util
 
@@ -622,7 +623,17 @@ class SerenaAgent:
         if self._gui_log_viewer is not None:
             self._gui_log_viewer.set_tool_names(tool_names)
 
-        token_count_estimator = RegisteredTokenCountEstimator[self.serena_config.token_count_estimator]
+        try:
+            token_count_estimator = RegisteredTokenCountEstimator[self.serena_config.token_count_estimator]
+        except KeyError:
+            log.warning(
+                "Unknown/unavailable token count estimator '%s' configured; falling back to %s. "
+                "(Note: Anthropic-based estimation is not available in this build.) Valid options: %s",
+                self.serena_config.token_count_estimator,
+                RegisteredTokenCountEstimator.CHAR_COUNT.name,
+                RegisteredTokenCountEstimator.get_valid_names(),
+            )
+            token_count_estimator = RegisteredTokenCountEstimator.CHAR_COUNT
         log.info(f"Will record tool usage statistics with token count estimator: {token_count_estimator.name}.")
         self._tool_usage_stats = ToolUsageStats(token_count_estimator)
 
@@ -681,8 +692,11 @@ class SerenaAgent:
         self._update_active_tools()
 
         # create the dashboard backend (if enabled), which will register callback.
+        # In offline mode the dashboard is never started (it would otherwise fetch remote news).
         dashboard_api: SerenaDashboardAPI | None = None
-        if self.serena_config.web_dashboard:
+        if self.serena_config.web_dashboard and is_offline_mode():
+            log.info("Offline mode is enabled; the web dashboard will not be started.")
+        if self.serena_config.web_dashboard and not is_offline_mode():
             dashboard_api = SerenaDashboardAPI(
                 get_memory_log_handler(),
                 tool_names,
@@ -718,7 +732,12 @@ class SerenaAgent:
         self._send_usage_info()
 
     def _send_usage_info(self) -> None:
-        if os.getenv("CI") == "true" or os.getenv("GITHUB_ACTIONS") == "true" or os.getenv("SERENA_USAGE_REPORTING") == "false":
+        if (
+            is_offline_mode()
+            or os.getenv("CI") == "true"
+            or os.getenv("GITHUB_ACTIONS") == "true"
+            or os.getenv("SERENA_USAGE_REPORTING") == "false"
+        ):
             return
         params: dict[str, str | int] = {
             "os": platform.system(),

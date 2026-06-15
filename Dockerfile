@@ -6,6 +6,14 @@ SHELL ["/bin/bash", "-c"]
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
+# Offline / in-house build defaults: no outbound network access at runtime.
+# - SERENA_OFFLINE disables usage reporting, remote news, the web dashboard, and
+#   automatic language-server downloads (manual install guidance is shown instead).
+# - SERENA_USAGE_REPORTING=false additionally guarantees no anonymous usage stats are sent.
+# Override at run time (e.g. `docker run -e SERENA_OFFLINE=false ...`) to restore online behavior.
+ENV SERENA_OFFLINE=true
+ENV SERENA_USAGE_REPORTING=false
+
 # Install system dependencies required for package manager and build tools.
 # sudo, wget, zip needed for some assistants, like junie
 RUN apt-get update && apt-get install -y --no-install-recommends \

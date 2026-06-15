@@ -9,6 +9,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, replace
 from typing import Any, cast
 
+from serena.util.offline import is_offline_mode, offline_guidance
 from solidlsp.ls_utils import FileUtils, PlatformUtils
 from solidlsp.util import subprocess_util
 
@@ -86,9 +87,12 @@ class RuntimeDependencyCollection:
 
         Returns a mapping from dependency id to the resolved binary path.
         """
+        deps_for_platform = self.get_dependencies_for_current_platform()
+        if is_offline_mode():
+            self._raise_offline_install_error(deps_for_platform, target_dir)
         os.makedirs(target_dir, exist_ok=True)
         results: dict[str, str] = {}
-        for dep in self.get_dependencies_for_current_platform():
+        for dep in deps_for_platform:
             if dep.url:
                 self._install_from_url(dep, target_dir)
             if dep.command:
@@ -98,6 +102,30 @@ class RuntimeDependencyCollection:
             else:
                 results[dep.id] = target_dir
         return results
+
+    @staticmethod
+    def _raise_offline_install_error(deps: Sequence[RuntimeDependency], target_dir: str) -> None:
+        """Raises a RuntimeError with manual-installation guidance instead of auto-installing."""
+        lines: list[str] = []
+        for dep in deps:
+            detail = dep.description or dep.id
+            if dep.url:
+                lines.append(f"  - {detail}: download from {dep.url}")
+            elif dep.package_name:
+                version = f"=={dep.package_version}" if dep.package_version else ""
+                lines.append(f"  - {detail}: install package '{dep.package_name}{version}'")
+            elif dep.command:
+                lines.append(f"  - {detail}: run `{dep.command}`")
+            else:
+                lines.append(f"  - {detail}")
+        sources = "\n".join(lines) if lines else "  (no download sources declared)"
+        context = (
+            f"automatic installation of language server runtime dependencies into '{target_dir}'.\n"
+            f"Required component(s):\n{sources}\n"
+            "Install the component(s) manually and place the resulting binary at the location above "
+            "(or ensure the language server is available on PATH)"
+        )
+        raise RuntimeError(offline_guidance(context))
 
     @staticmethod
     def _run_command(command: str | list[str], cwd: str) -> None:

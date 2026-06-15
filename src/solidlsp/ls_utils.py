@@ -238,6 +238,12 @@ class FileUtils:
         """
         Downloads a file from ``url`` to ``target_path`` with optional integrity and host validation.
         """
+        # refuse any download in offline mode (defense in depth; auto-install is normally
+        # already blocked earlier in RuntimeDependencyCollection.install)
+        from serena.util.offline import raise_if_offline
+
+        raise_if_offline(f"download of '{url}' to '{target_path}'")
+
         # validating the requested host
         FileUtils._validate_download_host(url, allowed_hosts)
 

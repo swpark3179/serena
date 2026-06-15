@@ -13,6 +13,7 @@ import zipfile
 
 from overrides import override
 
+from serena.util.offline import raise_if_offline
 from solidlsp.ls import (
     LanguageServerDependencyProvider,
     LanguageServerDependencyProviderSinglePath,
@@ -108,6 +109,11 @@ class HaxeLanguageServer(SolidLanguageServer):
                     "  3. Set ls_path in serena_config.yml under ls_specific_settings.haxe"
                 )
 
+            raise_if_offline(
+                f"automatic download of the Haxe Language Server (vshaxe v{version}) from Open VSX.\n"
+                "Install it manually (e.g. `code --install-extension nadako.vshaxe`) or set ls_path in "
+                "serena_config.yml under ls_specific_settings.haxe"
+            )
             downloaded_path = self._download_from_open_vsx(haxe_ls_dir, version)
             if downloaded_path:
                 return downloaded_path

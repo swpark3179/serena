@@ -35,7 +35,8 @@ dependencies = [
   "joblib==1.5.1",
   "tqdm==4.67.1",
   "tiktoken==0.12.0",
-  "anthropic==0.59.0",
+  # NOTE: the 'anthropic' dependency was intentionally removed for the offline/in-house build,
+  # which must not perform any external LLM-provider calls (see src/serena/util/offline.py).
   "beautifulsoup4==4.14.2",
   "pywebview==6.2",
   "pystray==0.19.5",

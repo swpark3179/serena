@@ -26,6 +26,7 @@ from serena.config.serena_config import SerenaConfig, SerenaPaths
 from serena.constants import SERENA_DASHBOARD_DIR, SerenaPorts
 from serena.task_executor import TaskExecutor
 from serena.util.logging import MemoryLogHandler
+from serena.util.offline import is_offline_mode
 from serena.util.pywebview import WebViewWithTray
 
 if TYPE_CHECKING:
@@ -217,8 +218,12 @@ class SerenaDashboardAPI:
         self._current_config_overview: dict[str, Any] | None = None
         self._agent.register_config_changed_callback(self._on_agent_config_changed)
 
-        # fetch remote news in background on startup (non-blocking)
-        threading.Thread(target=self._fetch_news, daemon=True).start()
+        # fetch remote news in background on startup (non-blocking);
+        # skipped entirely in offline mode to avoid any outbound network access.
+        if is_offline_mode():
+            log.info("Offline mode is enabled; skipping remote news fetch.")
+        else:
+            threading.Thread(target=self._fetch_news, daemon=True).start()
 
     @property
     def memory_log_handler(self) -> MemoryLogHandler:
@@ -696,6 +701,9 @@ class SerenaDashboardAPI:
 
     def _fetch_news(self) -> None:
         """Fetch news.json from GitHub using ETag-based caching and store in memory. Silently ignores network errors."""
+        if is_offline_mode():
+            log.debug("Offline mode is enabled; not fetching remote news.")
+            return
         paths = SerenaPaths()
 
         headers: dict[str, str] = {}

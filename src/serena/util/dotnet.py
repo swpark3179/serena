@@ -6,6 +6,7 @@ import subprocess
 import urllib
 from pathlib import Path
 
+from serena.util.offline import raise_if_offline
 from serena.util.version import Version
 from solidlsp.ls_exceptions import SolidLSPException
 
@@ -90,6 +91,13 @@ class DotNETUtil:
         if dotnet_exe.exists():
             log.info(f"Using cached .NET {version} runtime from {dotnet_exe}")
             return str(dotnet_exe)
+
+        # In offline mode, do not download the .NET install script; guide the user instead.
+        raise_if_offline(
+            f"automatic installation of the .NET {version} runtime.\n"
+            "Install the .NET runtime manually (https://dotnet.microsoft.com/download) "
+            f"and make 'dotnet' available on PATH or place it at '{dotnet_exe}'"
+        )
 
         # Download and run install script
         log.info(f"Installing .NET {version} runtime using official Microsoft install script...")
